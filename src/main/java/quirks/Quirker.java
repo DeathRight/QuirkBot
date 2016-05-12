@@ -1,6 +1,8 @@
 package quirks;
 
 import java.io.File;
+
+import java.util.ArrayList;
 import java.util.List;
 
 import de.btobastian.javacord.entities.User;
@@ -10,7 +12,7 @@ import org.python.core.*;
 
 public class Quirker
 {
-    String[] quirkNames;
+    File[] quirks;
 
     public Quirker(String quirks)
     {
@@ -28,9 +30,9 @@ public class Quirker
 
     public int getQuirkId(String name)
     {
-        for (int i = 0; i < quirkNames.length; i++)
+        for (int i = 0; i < quirks.length; i++)
         {
-            if (name.equalsIgnoreCase(quirkNames[i]))
+            if (name.equalsIgnoreCase(quirks[i].getName().substring(0, quirks[i].getName().lastIndexOf('.'))))
             {
                 return i;
             }
@@ -40,15 +42,15 @@ public class Quirker
 
     public String quirk(String text, List<User> mentions, int quirkID)
     {
-        String quirk = quirkNames[quirkID];
+        File quirk = quirks[quirkID];
         return "";
     }
 
     public boolean isQuirk(String name)
     {
-        for (String s : quirkNames)
+        for (File f : quirks)
         {
-            if (s.equals(name))
+            if (f.getName().substring(0, f.getName().lastIndexOf('.')).equalsIgnoreCase(name))
                 return true;
         }
         return false;
@@ -56,18 +58,21 @@ public class Quirker
 
     private void importQuirks(File dir)
     {
-        File[] quirkFiles = dir.listFiles();
-        quirkNames = new String[quirkFiles.length];
-        for (int i = 0; i < quirkNames.length; i++)
+        ArrayList<File> quirkFiles = new ArrayList<File>();
+        for (File f : dir.listFiles())
         {
-            String name = quirkFiles[i].getName();
-            quirkNames[i] = name.substring(name.indexOf(0, '.'));
+            if (!f.isDirectory())
+                quirkFiles.add(f);
         }
+        quirks = quirkFiles.toArray(quirks);
     }
 
     public String[] getQuirks()
     {
-        return quirkNames.clone();
+        String[] ans = new String[quirks.length];
+        for (int i = 0; i < ans.length; i++)
+            ans[i] = quirks[i].getName().substring(0, quirks[i].getName().lastIndexOf('.'));
+        return ans;
     }
 
 }

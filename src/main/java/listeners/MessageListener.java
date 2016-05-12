@@ -1,6 +1,7 @@
 package listeners;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -17,15 +18,17 @@ import org.python.core.*;
 
 public class MessageListener implements MessageCreateListener
 {
-    Quirker q;
-    Map<String, Integer> chanQuirks;
+    private Quirker q;
+    public Map<String, Integer> chanQuirks;
 
-    boolean silent;
+    public boolean silent;
 
-    String[] commands;
+    public File[] commands;
 
-    String prefix;
-    String silentPrefix;
+    public String prefix;
+    public String silentPrefix;
+
+    public PythonInterpreter interp;
 
     public MessageListener(Quirker qu, Map<String, Integer> map, String cdir, String pref, String spref)
     {
@@ -44,6 +47,8 @@ public class MessageListener implements MessageCreateListener
             System.exit(2);
         } else
             importCommands(c);
+
+        interp = new PythonInterpreter();
     }
 
     public void onMessageCreate(DiscordAPI api, Message m)
@@ -58,23 +63,15 @@ public class MessageListener implements MessageCreateListener
             if (params.length == 1)
                 m.reply("If you are reading this, it means you successfully installed the Quirkinator v0.0.1-SNAPSHOT\nType \"~q help\" for a list of commands");
 
-            else if (params[1].equalsIgnoreCase("help"))
-            {
-                m.reply("Current command/quirk prefix: \"~q\"\nSilent command prefix: \"~sq\"\nA silent command will not print anything, and will delete the command message\nType \"~sq\" by itself to toggle silent mode\nIn silent mode, all commands are treated as silent\nAvailible Commands:\n    help\n    clear\nAvailible Quirks:\n    aradia\n    tavros\n    sollux\n    karkat\n    nepeta\n    kanaya\n    terezi\n    vriska\n    equius\n    gamzee\n    eridan\n    feferi");
-            } else if (params[1].equalsIgnoreCase("clear"))
-            {
-                chanQuirks.remove(chan.getId());
-                if (!silent)
-                    m.reply("Clearing quirk");
-            } else
+            else if (q.isQuirk(compile(params)))
             {
                 String quirk = compile(params);
-                if (q.isQuirk(quirk))
-                {
-                    chanQuirks.put(chan.getId(), q.getQuirkId(quirk));
-                    if (!silent)
-                        m.reply("Setting channel quirk to: " + quirk);
-                }
+                chanQuirks.put(chan.getId(), q.getQuirkId(quirk));
+                if (!silent)
+                    m.reply("Setting channel quirk to: " + quirk);
+            } else
+            {
+                run(getCommandId(params[1]), m, combine(params));
             }
 
             if (silent)
@@ -87,17 +84,12 @@ public class MessageListener implements MessageCreateListener
             if (params.length == 1)
             {
                 silent = !silent;
-            } else if (params[1].equalsIgnoreCase("clear"))
-            {
-                chanQuirks.remove(chan.getId());
-            } else
+            } else if (q.isQuirk(compile(params)))
             {
                 String quirk = compile(params);
-                if (q.isQuirk(quirk))
-                {
-                    chanQuirks.put(chan.getId(), q.getQuirkId(quirk));
-                }
-            }
+                chanQuirks.put(chan.getId(), q.getQuirkId(quirk));
+            } else
+                run(getCommandId(params[1]), m, combine(params));
             m.delete();
 
         } else if (chanQuirks.containsKey(chan.getId()))
@@ -121,27 +113,29 @@ public class MessageListener implements MessageCreateListener
         return sb.toString();
     }
 
-    public String[] getQuirks()
+    private String[] combine(String[] params)
     {
-        return q.getQuirks();
+        String[] ans = new String[params.length - 2];
+        for (int i = 2; i < params.length; i++)
+            ans[i - 2] = params[i];
+        return ans;
     }
 
     private void importCommands(File dir)
     {
-        File[] commandFiles = dir.listFiles();
-        commands = new String[commandFiles.length];
-        for (int i = 0; i < commands.length; i++)
-        {
-            String name = commandFiles[i].getName();
-            commands[i] = name.substring(name.indexOf(0, '.'));
-        }
+        ArrayList<File> commandFiles = new ArrayList<File>();
+        for (File f : dir.listFiles())
+            if (!f.isDirectory())
+                commandFiles.add(f);
+        commands = commandFiles.toArray(commands);
+
     }
 
     private int getCommandId(String name)
     {
         for (int i = 0; i < commands.length; i++)
         {
-            if (name.equalsIgnoreCase(commands[i]))
+            if (name.equalsIgnoreCase(commands[i].getName().substring(0, commands[i].getName().lastIndexOf('.'))))
             {
                 return i;
             }
@@ -149,9 +143,28 @@ public class MessageListener implements MessageCreateListener
         return -1;
     }
 
-    private void run(int id)
+    private void run(int id, Message m, String[] args)
     {
-        String command = commands[id];
+        if (id == -1)
+            return;
+        String filename = commands[id].getName().substring(0, commands[id].getName().lastIndexOf('.'));
+        interp.exec("import " + filename);
+        interp.set("messenger", getCommands());
+        interp.set("quirker", q);
+        interp.set("out", "");
+        interp.set("args", args);
+        interp.exec(filename + ".run(messenger, quirker, args, out");
+        String out = interp.get("out").asString();
+        if (!out.isEmpty())
+            m.reply(out);
+    }
+
+    public String[] getCommands()
+    {
+        String[] ans = new String[commands.length];
+        for (int i = 0; i < ans.length; i++)
+            ans[i] = commands[i].getName().substring(0, commands[i].getName().lastIndexOf('.'));
+        return ans;
     }
 
 }
