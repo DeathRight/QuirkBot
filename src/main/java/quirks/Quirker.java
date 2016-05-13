@@ -8,11 +8,12 @@ import java.util.List;
 import de.btobastian.javacord.entities.User;
 
 import org.python.util.PythonInterpreter;
-import org.python.core.*;
 
 public class Quirker
 {
-    File[] quirks;
+    private File[] quirks;
+
+    private PythonInterpreter interp;
 
     public Quirker(String quirks)
     {
@@ -64,6 +65,7 @@ public class Quirker
             if (!f.isDirectory())
                 quirkFiles.add(f);
         }
+        quirks = new File[1];
         quirks = quirkFiles.toArray(quirks);
     }
 

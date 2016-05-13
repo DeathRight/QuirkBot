@@ -14,7 +14,6 @@ import de.btobastian.javacord.listener.message.MessageCreateListener;
 import quirks.Quirker;
 
 import org.python.util.PythonInterpreter;
-import org.python.core.*;
 
 public class MessageListener implements MessageCreateListener
 {
@@ -28,7 +27,7 @@ public class MessageListener implements MessageCreateListener
     public String prefix;
     public String silentPrefix;
 
-    public PythonInterpreter interp;
+    private PythonInterpreter interp;
 
     public MessageListener(Quirker qu, Map<String, Integer> map, String cdir, String pref, String spref)
     {
@@ -127,6 +126,7 @@ public class MessageListener implements MessageCreateListener
         for (File f : dir.listFiles())
             if (!f.isDirectory())
                 commandFiles.add(f);
+        commands = new File[1];
         commands = commandFiles.toArray(commands);
 
     }
@@ -147,13 +147,13 @@ public class MessageListener implements MessageCreateListener
     {
         if (id == -1)
             return;
-        String filename = commands[id].getName().substring(0, commands[id].getName().lastIndexOf('.'));
-        interp.exec("import " + filename);
+        String filename = commands[id].getName();
+        interp.execfile(filename);
         interp.set("messenger", getCommands());
         interp.set("quirker", q);
         interp.set("out", "");
         interp.set("args", args);
-        interp.exec(filename + ".run(messenger, quirker, args, out");
+        interp.exec("run(messenger, quirker, args, out");
         String out = interp.get("out").asString();
         if (!out.isEmpty())
             m.reply(out);
