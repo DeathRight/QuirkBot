@@ -1,9 +1,13 @@
 package listeners;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import de.btobastian.javacord.DiscordAPI;
 import de.btobastian.javacord.entities.Channel;
@@ -14,9 +18,12 @@ import de.btobastian.javacord.listener.message.MessageCreateListener;
 import quirks.Quirker;
 
 import org.python.util.PythonInterpreter;
+import org.python.core.*;
 
 public class MessageListener implements MessageCreateListener
 {
+    private static final String v = "0.0.2";
+
     private Quirker q;
     public Map<String, Integer> chanQuirks;
 
@@ -47,6 +54,11 @@ public class MessageListener implements MessageCreateListener
         } else
             importCommands(c);
 
+        Properties p = new Properties();
+        p.setProperty("python.import.site", "false");
+
+        PythonInterpreter.initialize(System.getProperties(), p, new String[0]);
+
         interp = new PythonInterpreter();
     }
 
@@ -70,7 +82,14 @@ public class MessageListener implements MessageCreateListener
                     m.reply("Setting channel quirk to: " + quirk);
             } else
             {
-                run(getCommandId(params[1]), m, combine(params));
+                try
+                {
+                    run(getCommandId(params[1]), m, combine(params));
+                } catch (FileNotFoundException e)
+                {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
             }
 
             if (silent)
@@ -88,7 +107,14 @@ public class MessageListener implements MessageCreateListener
                 String quirk = compile(params);
                 chanQuirks.put(chan.getId(), q.getQuirkId(quirk));
             } else
-                run(getCommandId(params[1]), m, combine(params));
+                try
+                {
+                    run(getCommandId(params[1]), m, combine(params));
+                } catch (FileNotFoundException e)
+                {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
             m.delete();
 
         } else if (chanQuirks.containsKey(chan.getId()))
@@ -143,20 +169,35 @@ public class MessageListener implements MessageCreateListener
         return -1;
     }
 
-    private void run(int id, Message m, String[] args)
+    private void run(int id, Message m, String[] args) throws FileNotFoundException
     {
+        System.out.println("Entered run with id: " + id);
         if (id == -1)
             return;
+        System.out.println("Command valid");
         String filename = commands[id].getName();
-        interp.execfile(filename);
-        interp.set("messenger", getCommands());
-        interp.set("quirker", q);
-        interp.set("out", "");
-        interp.set("args", args);
-        interp.exec("run(messenger, quirker, args, out");
-        String out = interp.get("out").asString();
-        if (!out.isEmpty())
+        System.out.println("File get: " + filename);
+        interp.compile(new FileReader(commands[id]));
+        System.out.println("File Compiled");
+        interp.exec("import " + filename);
+        System.out.println("File imported");
+        PyArray quirks = new PyArray("".getClass(), q.getQuirks());
+        System.out.println("Quirks array generated");
+        PyArray bargs = new PyArray("".getClass(), args);
+        System.out.println("Args array generated");
+        interp.set("messenger", this);
+        System.out.println("Messenger passed");
+        interp.set("quirks", quirks);
+        System.out.println("Quirks passed");
+        interp.set("args", bargs);
+        System.out.println("Args passed");
+        interp.exec("ans = " + filename + ".run(messenger, quirker, args");
+        System.out.println("Command run");
+        String out = interp.get("ans").asString();
+        System.out.println("Output returned");
+        if (!out.isEmpty() && !silent)
             m.reply(out);
+        System.out.println("Answered (maybe)");
     }
 
     public String[] getCommands()
@@ -165,6 +206,11 @@ public class MessageListener implements MessageCreateListener
         for (int i = 0; i < ans.length; i++)
             ans[i] = commands[i].getName().substring(0, commands[i].getName().lastIndexOf('.'));
         return ans;
+    }
+
+    public String getVersion()
+    {
+        return v;
     }
 
 }

@@ -8,9 +8,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
-
-import org.python.util.PythonInterpreter;
 
 import com.google.common.util.concurrent.FutureCallback;
 
@@ -31,14 +28,6 @@ public class Main
 
     public static void main(String[] args) throws IOException
     {
-        Properties p = new Properties();
-        p.setProperty("python.import.site", "false");
-
-        PythonInterpreter.initialize(System.getProperties(), p, new String[0]);
-
-        PythonInterpreter interp = new PythonInterpreter();
-        System.out.println("Interpreter initialized");
-
         File config = new File("config.cfg");
 
         if (!config.exists())
