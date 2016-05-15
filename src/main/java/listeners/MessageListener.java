@@ -1,9 +1,7 @@
 package listeners;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +20,7 @@ import org.python.core.*;
 
 public class MessageListener implements MessageCreateListener
 {
-    private static final String v = "0.0.2";
+    private static final String V = "0.0.2";
 
     private Quirker q;
     public Map<String, Integer> chanQuirks;
@@ -35,6 +33,8 @@ public class MessageListener implements MessageCreateListener
     public String silentPrefix;
 
     private PythonInterpreter interp;
+
+    private String commandDir;
 
     public MessageListener(Quirker qu, Map<String, Integer> map, String cdir, String pref, String spref)
     {
@@ -53,6 +53,8 @@ public class MessageListener implements MessageCreateListener
             System.exit(2);
         } else
             importCommands(c);
+
+        commandDir = cdir;
 
         Properties p = new Properties();
         p.setProperty("python.import.site", "false");
@@ -177,9 +179,7 @@ public class MessageListener implements MessageCreateListener
         System.out.println("Command valid");
         String filename = commands[id].getName();
         System.out.println("File get: " + filename);
-        interp.compile(new FileReader(commands[id]));
-        System.out.println("File Compiled");
-        interp.exec("import " + filename);
+        interp.exec("import " + commandDir + "." + filename);
         System.out.println("File imported");
         PyArray quirks = new PyArray("".getClass(), q.getQuirks());
         System.out.println("Quirks array generated");
@@ -210,7 +210,7 @@ public class MessageListener implements MessageCreateListener
 
     public String getVersion()
     {
-        return v;
+        return V;
     }
 
 }

@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import com.google.common.util.concurrent.FutureCallback;
 
@@ -16,6 +17,9 @@ import de.btobastian.javacord.Javacord;
 
 import listeners.MessageListener;
 import quirks.Quirker;
+
+import org.python.util.PythonInterpreter;
+import org.python.core.*;
 
 public class Main
 {
@@ -26,8 +30,39 @@ public class Main
 
     static Map<String, Integer> chanMap;
 
+    static PythonInterpreter interp;
+
     public static void main(String[] args) throws IOException
     {
+        Properties p = new Properties();
+        p.setProperty("python.import.site", "false");
+
+        PythonInterpreter.initialize(System.getProperties(), p, new String[0]);
+
+        interp = new PythonInterpreter();
+
+        String filename = "help.py";
+        System.out.println("File get: " + filename);
+        interp.exec("import " + "commands" + "." + filename);
+        System.out.println("File imported");
+        PyArray quirks = new PyArray("".getClass(), q.getQuirks());
+        System.out.println("Quirks array generated");
+        PyArray bargs = new PyArray("".getClass(), args);
+        System.out.println("Args array generated");
+        interp.set("messenger", null);
+        System.out.println("Messenger passed");
+        interp.set("quirks", quirks);
+        System.out.println("Quirks passed");
+        interp.set("args", bargs);
+        System.out.println("Args passed");
+        interp.exec("ans = " + filename + ".run(messenger, quirker, args");
+        System.out.println("Command run");
+        String outS = interp.get("ans").asString();
+        System.out.println("Output returned");
+        System.out.println(outS);
+
+        System.exit(2);
+
         File config = new File("config.cfg");
 
         if (!config.exists())
