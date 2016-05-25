@@ -2,6 +2,7 @@ package listeners;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,8 +47,18 @@ public class MessageListener implements MessageCreateListener
 
         File c = new File(cdir);
         if (!c.exists())
+        {
             c.mkdir();
-        else if (!c.isDirectory())
+            File it = new File(cdir + File.pathSeparator + "__init__.py");
+            try
+            {
+                it.createNewFile();
+            } catch (IOException e)
+            {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        } else if (!c.isDirectory())
         {
             System.out.println("Error: commands directory already exists, and is actually a file. Shutting down");
             System.exit(2);
@@ -62,6 +73,8 @@ public class MessageListener implements MessageCreateListener
         PythonInterpreter.initialize(System.getProperties(), p, new String[0]);
 
         interp = new PythonInterpreter();
+        interp.setOut(System.out);
+        interp.setErr(System.err);
     }
 
     public void onMessageCreate(DiscordAPI api, Message m)
@@ -74,7 +87,7 @@ public class MessageListener implements MessageCreateListener
         if (params[0].equalsIgnoreCase(prefix))
         {
             if (params.length == 1)
-                m.reply("If you are reading this, it means you successfully installed the Quirkinator v0.0.1-SNAPSHOT\nType \"~q help\" for a list of commands");
+                m.reply("If you are reading this, it means you successfully installed the Quirkinator v" + V + "\nType \"~q help\" for a list of commands");
 
             else if (q.isQuirk(compile(params)))
             {
@@ -152,7 +165,7 @@ public class MessageListener implements MessageCreateListener
     {
         ArrayList<File> commandFiles = new ArrayList<File>();
         for (File f : dir.listFiles())
-            if (!f.isDirectory())
+            if (!f.isDirectory() && !f.getName().equals("__init__.py"))
                 commandFiles.add(f);
         commands = new File[1];
         commands = commandFiles.toArray(commands);
@@ -173,31 +186,18 @@ public class MessageListener implements MessageCreateListener
 
     private void run(int id, Message m, String[] args) throws FileNotFoundException
     {
-        System.out.println("Entered run with id: " + id);
         if (id == -1)
             return;
-        System.out.println("Command valid");
         String filename = commands[id].getName();
-        System.out.println("File get: " + filename);
-        interp.exec("import " + commandDir + "." + filename);
-        System.out.println("File imported");
-        PyArray quirks = new PyArray("".getClass(), q.getQuirks());
-        System.out.println("Quirks array generated");
-        PyArray bargs = new PyArray("".getClass(), args);
-        System.out.println("Args array generated");
+        interp.exec("import " + commandDir + "." + filename.substring(0, filename.lastIndexOf('.')));
         interp.set("messenger", this);
-        System.out.println("Messenger passed");
-        interp.set("quirks", quirks);
-        System.out.println("Quirks passed");
-        interp.set("args", bargs);
-        System.out.println("Args passed");
-        interp.exec("ans = " + filename + ".run(messenger, quirker, args");
-        System.out.println("Command run");
+        interp.set("quirks", q.getQuirks());
+        interp.set("args", args);
+        interp.set("chan", m.getChannelReceiver().getId());
+        interp.exec("ans = " + commandDir + '.' + filename.substring(0, filename.lastIndexOf('.')) + ".run(messenger, quirks, args, chan)");
         String out = interp.get("ans").asString();
-        System.out.println("Output returned");
         if (!out.isEmpty() && !silent)
             m.reply(out);
-        System.out.println("Answered (maybe)");
     }
 
     public String[] getCommands()

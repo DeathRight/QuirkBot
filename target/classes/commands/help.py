@@ -1,12 +1,12 @@
-def run(messenger, quirks, args):
-    ans = "You are running QuirkBot version " + messenger.getVersion()
+def run(m, q, arg):
+    ans = "You are running QuirkBot version " + m.getVersion()
     ans += "\nAvailible commands are:\n"
-    comms = messenger.getCommands()
-    for i in range(comms.length):
+    comms = m.getCommands()
+    for i in range(len(comms)):
         ans += "\t" + comms[i] + "\n"
         
     ans += "Availible quirks are:"
-    for i in range(quirks.length):
-        ans += "\n\t" + quirks[i]
+    for i in range(len(q)):
+        ans += "\n\t" + q[i]
         
     return ans
