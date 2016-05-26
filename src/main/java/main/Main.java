@@ -15,7 +15,7 @@ import de.btobastian.javacord.DiscordAPI;
 import de.btobastian.javacord.Javacord;
 
 import listeners.MessageListener;
-import quirks.Quirker;
+import quirkers.Quirker;
 
 public class Main
 {
@@ -28,7 +28,6 @@ public class Main
 
     public static void main(String[] args) throws IOException
     {
-
         File config = new File("config.cfg");
 
         if (!config.exists())

@@ -6,7 +6,8 @@ def run(m, q, *args):
         ans += "\t" + comms[i] + "\n"
         
     ans += "Availible quirks are:"
-    for i in range(len(q)):
-        ans += "\n\t" + q[i]
+    qAry = q.getQuirks()
+    for i in range(len(qAry)):
+        ans += "\n\t" + qAry[i]
         
     return ans

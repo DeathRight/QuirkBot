@@ -1,4 +1,4 @@
-def run(m, q, arg):
+def run(m, q, *args):
     ans = "You are running QuirkBot version " + m.getVersion()
     ans += "\nAvailible commands are:\n"
     comms = m.getCommands()
@@ -6,7 +6,8 @@ def run(m, q, arg):
         ans += "\t" + comms[i] + "\n"
         
     ans += "Availible quirks are:"
-    for i in range(len(q)):
-        ans += "\n\t" + q[i]
+    qAry = q.getQuirks()
+    for i in range(len(qAry)):
+        ans += "\n\t" + qAry[i]
         
     return ans

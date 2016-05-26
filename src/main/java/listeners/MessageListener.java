@@ -13,15 +13,13 @@ import de.btobastian.javacord.entities.Channel;
 import de.btobastian.javacord.entities.User;
 import de.btobastian.javacord.entities.message.Message;
 import de.btobastian.javacord.listener.message.MessageCreateListener;
-
-import quirks.Quirker;
+import quirkers.Quirker;
 
 import org.python.util.PythonInterpreter;
-import org.python.core.*;
 
 public class MessageListener implements MessageCreateListener
 {
-    private static final String V = "0.0.2";
+    private static final String V = "0.0.3";
 
     private Quirker q;
     public Map<String, Integer> chanQuirks;
@@ -99,7 +97,7 @@ public class MessageListener implements MessageCreateListener
             {
                 try
                 {
-                    run(getCommandId(params[1]), m, combine(params));
+                    run(getCommandId(params[1]), m, combine(params), false);
                 } catch (FileNotFoundException e)
                 {
                     // TODO Auto-generated catch block
@@ -124,7 +122,7 @@ public class MessageListener implements MessageCreateListener
             } else
                 try
                 {
-                    run(getCommandId(params[1]), m, combine(params));
+                    run(getCommandId(params[1]), m, combine(params), true);
                 } catch (FileNotFoundException e)
                 {
                     // TODO Auto-generated catch block
@@ -172,6 +170,12 @@ public class MessageListener implements MessageCreateListener
 
     }
 
+    public void importCommands()
+    {
+        File cd = new File(commandDir);
+        importCommands(cd);
+    }
+
     private int getCommandId(String name)
     {
         for (int i = 0; i < commands.length; i++)
@@ -184,19 +188,19 @@ public class MessageListener implements MessageCreateListener
         return -1;
     }
 
-    private void run(int id, Message m, String[] args) throws FileNotFoundException
+    private void run(int id, Message m, String[] args, boolean sl) throws FileNotFoundException
     {
         if (id == -1)
             return;
         String filename = commands[id].getName();
         interp.exec("import " + commandDir + "." + filename.substring(0, filename.lastIndexOf('.')));
         interp.set("messenger", this);
-        interp.set("quirks", q.getQuirks());
+        interp.set("quirker", q);
         interp.set("args", args);
-        interp.set("chan", m.getChannelReceiver().getId());
-        interp.exec("ans = " + commandDir + '.' + filename.substring(0, filename.lastIndexOf('.')) + ".run(messenger, quirks, args, chan)");
+        interp.set("message", m);
+        interp.exec("ans = " + commandDir + '.' + filename.substring(0, filename.lastIndexOf('.')) + ".run(messenger, quirker, args, message)");
         String out = interp.get("ans").asString();
-        if (!out.isEmpty() && !silent)
+        if (!out.isEmpty() && !silent && !sl)
             m.reply(out);
     }
 
@@ -211,6 +215,13 @@ public class MessageListener implements MessageCreateListener
     public String getVersion()
     {
         return V;
+    }
+
+    public void die()
+    {
+        q.die();
+        interp.close();
+        System.exit(0);
     }
 
 }
